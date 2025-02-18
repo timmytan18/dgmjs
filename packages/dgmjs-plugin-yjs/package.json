@@ -18,6 +18,7 @@
   "license": "GPLv3",
   "dependencies": {
     "@dgmjs/core": "*",
+    "y-protocols": "^1.0.6",
     "yjs": "^13.6.15"
   },
   "devDependencies": {

@@ -444,7 +444,7 @@ export class Editor {
     this.enabled = true;
     this.darkMode = false;
     this.gridSize = [8, 8];
-    this.showGrid = false;
+    this.showGrid = true;
     this.snapToGrid = false;
     this.snapToObjects = false;
     this.handlers = {};
@@ -478,6 +478,17 @@ export class Editor {
       return "linux";
     }
     return "unknown";
+  }
+
+  /**
+   * Calculate pan speed based on current scale
+   * @param scale Current zoom scale
+   * @returns [scaleFactor, baseSpeed] tuple
+   */
+  private calculatePanSpeed(scale: number): [number, number] {
+    const scaleFactor = Math.pow(1 / scale, 0.5);
+    const baseSpeed = scale < 1 ? 2.5 : 1.5;
+    return [scaleFactor, baseSpeed];
   }
 
   private initializeState() {
@@ -558,8 +569,10 @@ export class Editor {
         if (this.midButtonDown || (this.spaceKeyDown && this.leftButtonDown)) {
           // viewpoint move
           this.setCursor(Cursor.GRABBING);
-          let dx = (e.offsetX - this.downX) / this.getScale();
-          let dy = (e.offsetY - this.downY) / this.getScale();
+          const scale = this.getScale();
+          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(scale);
+          let dx = (e.offsetX - this.downX) * scaleFactor * baseSpeed;
+          let dy = (e.offsetY - this.downY) * scaleFactor * baseSpeed;
           this.moveOrigin(dx, dy);
           this.downX = e.offsetX;
           this.downY = e.offsetY;
@@ -620,11 +633,18 @@ export class Editor {
         if (this.isPinching && e.touches.length === 2) {
           const event = createTouchEvent(this.canvasElement, this.canvas, e);
           const currentDistance = event.touchDistance;
-          const scale = currentDistance / this.initialDistance;
+          const scale = (currentDistance / this.initialDistance) * 1.5;
           const p1 = this.canvas.globalCoordTransformRev(this.touchPoint);
           this.setScale(this.initialScale * scale);
           const p2 = this.canvas.globalCoordTransformRev([event.x, event.y]);
-          this.moveOrigin(p2[0] - p1[0], p2[1] - p1[1]);
+          const dx = p2[0] - p1[0];
+          const dy = p2[1] - p1[1];
+          const currentScale = this.getScale();
+          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(currentScale);
+          this.moveOrigin(
+            dx * scaleFactor * baseSpeed,
+            dy * scaleFactor * baseSpeed
+          );
           this.touchPoint = [event.x, event.y];
         }
       }
@@ -696,27 +716,38 @@ export class Editor {
         const event = createPointerEvent(this.canvasElement, this.canvas, e);
         const dx = -e.deltaX;
         const dy = -e.deltaY;
-        const h = this.getSize()[1] / (this.canvas.px * 4);
+        const h = this.getSize()[1] / (this.canvas.px * 2);
+        const zoomScale = 0.15;
         if (e.ctrlKey || e.metaKey) {
           // zoom with wheel
           e.preventDefault();
           if (dy < 0) {
             const p1 = this.canvas.globalCoordTransformRev([event.x, event.y]);
-            this.setScale(this.canvas.scale * (1 + dy / h));
+            this.setScale(this.canvas.scale * (1 + dy / (h * zoomScale)));
             const p2 = this.canvas.globalCoordTransformRev([event.x, event.y]);
             this.moveOrigin(p2[0] - p1[0], p2[1] - p1[1]);
           } else if (dy > 0) {
             const p1 = this.canvas.globalCoordTransformRev([event.x, event.y]);
-            this.setScale(this.canvas.scale * (1 + dy / h));
+            this.setScale(this.canvas.scale * (1 + dy / (h * zoomScale)));
             const p2 = this.canvas.globalCoordTransformRev([event.x, event.y]);
             this.moveOrigin(p2[0] - p1[0], p2[1] - p1[1]);
           }
         } else if (e.shiftKey && Math.abs(dx) === 0) {
           // horizontal scroll (only for non macOS)
-          this.moveOrigin(dy, dx);
+          const scale = this.getScale();
+          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(scale);
+          this.moveOrigin(
+            dy * scaleFactor * baseSpeed,
+            dx * scaleFactor * baseSpeed
+          );
         } else {
           // vertical scroll
-          this.moveOrigin(dx, dy);
+          const scale = this.getScale();
+          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(scale);
+          this.moveOrigin(
+            dx * scaleFactor * baseSpeed,
+            dy * scaleFactor * baseSpeed
+          );
         }
       }
       e.preventDefault();
@@ -1226,7 +1257,7 @@ export class Editor {
       const p2 = canvas.globalCoordTransformRev(sz);
       let w = this.gridSize[0] * 2;
       let h = this.gridSize[1] * 2;
-      let thick = Math.max(Math.round(1 / scale), 1);
+      let dotSize = Math.max(Math.round(2 / scale), 2);
       if (scale < 0.2) {
         w = this.gridSize[0] * 16;
         h = this.gridSize[1] * 16;
@@ -1239,20 +1270,34 @@ export class Editor {
       }
       const wc = Math.floor((p2[0] - p1[0]) / w);
       const wh = Math.floor((p2[1] - p1[1]) / h);
-      canvas.strokeColor = this.canvas.resolveColor(
+
+      // Set up the canvas state for dots
+      canvas.roughness = 0;
+      // Calculate opacity based on zoom level
+      const minOpacity = 0.1; // minimum opacity
+      const maxOpacity = 0.8; // maximum opacity
+      const opacityScale = Math.min(Math.max((scale - 0.1) / 0.4, 0), 1); // scale from 0.1 to 0.5 zoom
+      canvas.alpha = minOpacity + (maxOpacity - minOpacity) * opacityScale;
+      canvas.fillColor = this.canvas.resolveColor(
         this.options.gridColor ?? Color.GRID
       );
-      canvas.strokeWidth = thick;
-      canvas.strokePattern = [];
-      canvas.roughness = 0;
-      canvas.alpha = 1;
-      for (let i = 0; i <= wc; i++) {
-        const x = p1[0] + i * w - (p1[0] % w);
-        canvas.line(x, p1[1], x, p2[1]);
-      }
-      for (let i = 0; i <= wh; i++) {
-        const y = p1[1] + i * h - (p1[1] % h);
-        canvas.line(p1[0], y, p2[0], y);
+      canvas.fillStyle = FillStyle.SOLID;
+
+      // Only draw dots if they would be visible
+      if (canvas.alpha > minOpacity) {
+        // Draw dots at grid intersections
+        for (let i = 0; i <= wc; i++) {
+          const x = p1[0] + i * w - (p1[0] % w);
+          for (let j = 0; j <= wh; j++) {
+            const y = p1[1] + j * h - (p1[1] % h);
+            canvas.fillEllipse(
+              x - dotSize / 2,
+              y - dotSize / 2,
+              x + dotSize / 2,
+              y + dotSize / 2
+            );
+          }
+        }
       }
     }
 

@@ -50,7 +50,7 @@ export const DGMEditorCore: React.FC<DGMEditorCoreProps> = ({
   plugins,
   enabled = true,
   darkMode = false,
-  showGrid = false,
+  showGrid = true,
   snapToGrid = false,
   snapToObjects = false,
   onMount,

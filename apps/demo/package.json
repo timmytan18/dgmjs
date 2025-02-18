@@ -13,6 +13,7 @@
     "@dgmjs/core": "*",
     "@dgmjs/dgmjs-plugin-yjs": "*",
     "@dgmjs/export": "*",
+    "@dgmjs/pdf": "workspace:^",
     "@dgmjs/react": "*",
     "@dgmjs/y-webrtc": "^10.1.8",
     "@radix-ui/react-checkbox": "^1.0.4",
@@ -63,6 +64,9 @@
     "tiptap-extension-font-size": "^1.2.0",
     "unique-names-generator": "^4.7.1",
     "vaul": "^0.9.1",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.23",
+    "zod": "^3.24.2",
     "zod-to-json-schema": "^3.22.4",
     "zustand": "^4.5.0"
   },

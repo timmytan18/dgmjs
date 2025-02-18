@@ -18,6 +18,7 @@
   "license": "DGM License",
   "dependencies": {
     "@dgmjs/core": "*",
+    "@tiptap/core": "^2.11.5",
     "@tiptap/extension-bold": "^2.2.3",
     "@tiptap/extension-bullet-list": "^2.2.3",
     "@tiptap/extension-document": "^2.2.3",
@@ -34,12 +35,16 @@
     "@tiptap/extension-text-align": "^2.2.3",
     "@tiptap/extension-text-style": "^2.2.3",
     "@tiptap/extension-underline": "^2.2.3",
+    "@tiptap/pm": "^2.11.5",
     "@tiptap/react": "^2.2.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tiptap-extension-font-size": "^1.2.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",

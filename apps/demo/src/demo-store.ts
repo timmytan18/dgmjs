@@ -34,7 +34,7 @@ export const useDemoStore = create<DemoState>()(
       scale: 1,
       origin: [0, 0],
       darkMode: false,
-      showGrid: false,
+      showGrid: true,
       snapToGrid: false,
       snapToObjects: false,
       activeHandler: "Select",

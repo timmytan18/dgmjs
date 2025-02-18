@@ -198,7 +198,7 @@ export const themeColors: Record<string, Colors> = {
   dark: {
     transparent: "#00000000",
     foreground: "#ffffff",
-    background: "#000000",
+    background: slateDark.slate1,
     ...grayDark,
     ...grayDarkA,
     ...mauveDark,
