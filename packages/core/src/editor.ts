@@ -1,20 +1,20 @@
-import { Canvas, CanvasPointerEvent, FillStyle } from "./graphics/graphics";
-import { Connector, Doc, Shape, Page, shapeInstantiator } from "./shapes";
-import { Cursor, Color, Mouse, CONTROL_POINT_APOTHEM } from "./graphics/const";
-import { assert } from "./std/assert";
-import * as geometry from "./graphics/geometry";
-import * as utils from "./graphics/utils";
-import { ShapeFactory } from "./factory";
-import type { Obj } from "./core/obj";
-import { themeColors } from "./colors";
 import { Actions } from "./actions";
-import { KeyMap, KeymapManager } from "./keymap-manager";
-import { AutoScroller } from "./utils/auto-scroller";
-import { Store } from "./core/store";
-import { SelectionManager } from "./selection-manager";
+import { themeColors } from "./colors";
 import { Clipboard } from "./core/clipboard";
-import { TypedEvent } from "./std/typed-event";
+import type { Obj } from "./core/obj";
+import { Store } from "./core/store";
 import { Transform } from "./core/transform";
+import { ShapeFactory } from "./factory";
+import { Color, CONTROL_POINT_APOTHEM, Cursor, Mouse } from "./graphics/const";
+import * as geometry from "./graphics/geometry";
+import { Canvas, CanvasPointerEvent, FillStyle } from "./graphics/graphics";
+import * as utils from "./graphics/utils";
+import { KeyMap, KeymapManager } from "./keymap-manager";
+import { SelectionManager } from "./selection-manager";
+import { Connector, Doc, Page, Shape, shapeInstantiator } from "./shapes";
+import { assert } from "./std/assert";
+import { TypedEvent } from "./std/typed-event";
+import { AutoScroller } from "./utils/auto-scroller";
 
 export interface EditorOptions {
   handlers: Handler[];
@@ -73,9 +73,9 @@ function createTouchEvent(
     e.touches.length === 2
       ? (e.touches[0].clientY + e.touches[1].clientY) / 2
       : e.touches[0].clientY;
-  let _p = [cx - rect.left, cy - rect.top];
+  const _p = [cx - rect.left, cy - rect.top];
   // transform pointer event point to CCS (canvas coord-system)
-  let p = [_p[0] * canvas.ratio, _p[1] * canvas.ratio];
+  const p = [_p[0] * canvas.ratio, _p[1] * canvas.ratio];
   const options = {
     button: 0,
     shiftKey: false,
@@ -104,9 +104,9 @@ function createPointerEvent(
   e: MouseEvent
 ): CanvasPointerEvent {
   const rect = element.getBoundingClientRect();
-  let _p = [e.clientX - rect.left, e.clientY - rect.top];
+  const _p = [e.clientX - rect.left, e.clientY - rect.top];
   // transform pointer event point to CCS (canvas coord-system)
-  let p = [_p[0] * canvas.ratio, _p[1] * canvas.ratio];
+  const p = [_p[0] * canvas.ratio, _p[1] * canvas.ratio];
   return new CanvasPointerEvent(p[0], p[1], e);
 }
 
@@ -571,8 +571,8 @@ export class Editor {
           this.setCursor(Cursor.GRABBING);
           const scale = this.getScale();
           const [scaleFactor, baseSpeed] = this.calculatePanSpeed(scale);
-          let dx = (e.offsetX - this.downX) * scaleFactor * baseSpeed;
-          let dy = (e.offsetY - this.downY) * scaleFactor * baseSpeed;
+          const dx = (e.offsetX - this.downX) * scaleFactor * baseSpeed;
+          const dy = (e.offsetY - this.downY) * scaleFactor * baseSpeed;
           this.moveOrigin(dx, dy);
           this.downX = e.offsetX;
           this.downY = e.offsetY;
@@ -1099,7 +1099,7 @@ export class Editor {
     if (this.currentPage) {
       // doc size in GCS
       const page = this.currentPage;
-      let box = Array.isArray(page.size)
+      const box = Array.isArray(page.size)
         ? [[0, 0], page.size]
         : page.getViewport(this.canvas);
       const center = geometry.center(box);
@@ -1131,7 +1131,7 @@ export class Editor {
     if (this.currentPage) {
       // doc size in GCS
       const page = this.currentPage;
-      let box = Array.isArray(page.size)
+      const box = Array.isArray(page.size)
         ? [[0, 0], page.size]
         : page.getViewport(this.canvas);
       if (!center) {
@@ -1156,7 +1156,7 @@ export class Editor {
   scrollToCenter() {
     if (this.currentPage) {
       const page = this.currentPage;
-      let box = Array.isArray(page.size)
+      const box = Array.isArray(page.size)
         ? [[0, 0], page.size]
         : page.getViewport(this.canvas);
       const center = geometry.center(box);
@@ -1222,8 +1222,8 @@ export class Editor {
     const pageSize = this.currentPage?.size;
     g.fillStyle = this.canvas.resolveColor(
       pageSize
-        ? this.options.blankColor ?? Color.BLANK
-        : this.options.canvasColor ?? Color.CANVAS
+        ? (this.options.blankColor ?? Color.BLANK)
+        : (this.options.canvasColor ?? Color.CANVAS)
     );
     g.globalAlpha = 1;
     g.fillRect(0, 0, this.canvasElement.width, this.canvasElement.height);
@@ -1257,7 +1257,7 @@ export class Editor {
       const p2 = canvas.globalCoordTransformRev(sz);
       let w = this.gridSize[0] * 2;
       let h = this.gridSize[1] * 2;
-      let dotSize = Math.max(Math.round(2 / scale), 2);
+      const dotSize = Math.max(Math.round(2 / scale), 2);
       if (scale < 0.2) {
         w = this.gridSize[0] * 16;
         h = this.gridSize[1] * 16;
@@ -1782,7 +1782,7 @@ export class Controller {
    */
   mouseIn(editor: Editor, shape: Shape, e: CanvasPointerEvent): boolean {
     const canvas = editor.canvas;
-    let p = canvas.globalCoordTransformRev([e.x, e.y]);
+    const p = canvas.globalCoordTransformRev([e.x, e.y]);
     return shape.visible && shape.enable && shape.containsPoint(canvas, p);
   }
 
@@ -1991,10 +1991,10 @@ export class Manipulator {
     e: CanvasPointerEvent
   ): [string, number] | null {
     // dragging controller has higher priority
-    for (let c of this.controllers) {
+    for (const c of this.controllers) {
       if (c.dragging) return c.mouseCursor(editor, shape, e);
     }
-    for (let c of this.controllers) {
+    for (const c of this.controllers) {
       if (c.active(editor, shape) && c.mouseIn(editor, shape, e))
         return c.mouseCursor(editor, shape, e);
     }
@@ -2007,7 +2007,7 @@ export class Manipulator {
    */
   pointerDown(editor: Editor, shape: Shape, e: CanvasPointerEvent): boolean {
     let handled = false;
-    for (let cp of this.controllers) {
+    for (const cp of this.controllers) {
       if (cp.active(editor, shape) && cp.mouseIn(editor, shape, e)) {
         handled = cp.pointerDown(editor, shape, e);
         if (handled) {
@@ -2055,7 +2055,7 @@ export class Manipulator {
     for (let i = 0; i < this.controllers.length; i++) {
       const cp = this.controllers[i];
       if (cp.active(editor, shape)) {
-        let handled = cp.keyDown(editor, shape, e);
+        const handled = cp.keyDown(editor, shape, e);
         if (handled) {
           return true;
         }
@@ -2072,7 +2072,7 @@ export class Manipulator {
     for (let i = 0; i < this.controllers.length; i++) {
       const cp = this.controllers[i];
       if (cp.active(editor, shape)) {
-        let handled = cp.keyUp(editor, shape, e);
+        const handled = cp.keyUp(editor, shape, e);
         if (handled) {
           return true;
         }
@@ -2098,8 +2098,8 @@ export class Manipulator {
    */
   drawHovering(editor: Editor, shape: Shape, e: CanvasPointerEvent) {
     const canvas = editor.canvas;
-    let outline = shape.getOutline();
-    let outlineCCS = outline.map((p) => utils.lcs2ccs(canvas, shape, p));
+    const outline = shape.getOutline();
+    const outlineCCS = outline.map((p) => utils.lcs2ccs(canvas, shape, p));
     canvas.storeState();
     canvas.strokeColor = Color.SELECTION;
     canvas.strokeWidth = canvas.px * 1.5;

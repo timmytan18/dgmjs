@@ -1,10 +1,10 @@
-import { CanvasPointerEvent } from "../graphics/graphics";
-import * as geometry from "../graphics/geometry";
-import { Shape } from "../shapes";
-import { Editor, Handler, manipulatorManager } from "../editor";
-import { Mouse, Color, Cursor } from "../graphics/const";
-import * as guide from "../utils/guide";
 import { ActionKind } from "../core";
+import { Editor, Handler, manipulatorManager } from "../editor";
+import { Color, Cursor, Mouse } from "../graphics/const";
+import * as geometry from "../graphics/geometry";
+import { CanvasPointerEvent } from "../graphics/graphics";
+import { Shape } from "../shapes";
+import * as guide from "../utils/guide";
 
 /**
  * Select Handler
