@@ -485,10 +485,10 @@ export class Editor {
    * @param scale Current zoom scale
    * @returns [scaleFactor, baseSpeed] tuple
    */
-  private calculatePanSpeed(scale: number): [number, number] {
-    const scaleFactor = Math.pow(1 / scale, 0.5);
-    const baseSpeed = scale < 1 ? 2.5 : 1.5;
-    return [scaleFactor, baseSpeed];
+  private calculatePanSpeed(scale: number): number {
+    // Logarithmic scaling provides more natural feeling speed changes
+    // Add 1 to avoid negative values when scale > 1
+    return Math.log(1 / scale + 1);
   }
 
   private initializeState() {
@@ -570,9 +570,9 @@ export class Editor {
           // viewpoint move
           this.setCursor(Cursor.GRABBING);
           const scale = this.getScale();
-          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(scale);
-          const dx = (e.offsetX - this.downX) * scaleFactor * baseSpeed;
-          const dy = (e.offsetY - this.downY) * scaleFactor * baseSpeed;
+          const scaleFactor = this.calculatePanSpeed(scale);
+          const dx = (e.offsetX - this.downX) * scaleFactor;
+          const dy = (e.offsetY - this.downY) * scaleFactor;
           this.moveOrigin(dx, dy);
           this.downX = e.offsetX;
           this.downY = e.offsetY;
@@ -640,11 +640,8 @@ export class Editor {
           const dx = p2[0] - p1[0];
           const dy = p2[1] - p1[1];
           const currentScale = this.getScale();
-          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(currentScale);
-          this.moveOrigin(
-            dx * scaleFactor * baseSpeed,
-            dy * scaleFactor * baseSpeed
-          );
+          const scaleFactor = this.calculatePanSpeed(currentScale);
+          this.moveOrigin(dx * scaleFactor, dy * scaleFactor);
           this.touchPoint = [event.x, event.y];
         }
       }
@@ -735,19 +732,13 @@ export class Editor {
         } else if (e.shiftKey && Math.abs(dx) === 0) {
           // horizontal scroll (only for non macOS)
           const scale = this.getScale();
-          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(scale);
-          this.moveOrigin(
-            dy * scaleFactor * baseSpeed,
-            dx * scaleFactor * baseSpeed
-          );
+          const scaleFactor = this.calculatePanSpeed(scale);
+          this.moveOrigin(dy * scaleFactor, dx * scaleFactor);
         } else {
           // vertical scroll
           const scale = this.getScale();
-          const [scaleFactor, baseSpeed] = this.calculatePanSpeed(scale);
-          this.moveOrigin(
-            dx * scaleFactor * baseSpeed,
-            dy * scaleFactor * baseSpeed
-          );
+          const scaleFactor = this.calculatePanSpeed(scale);
+          this.moveOrigin(dx * scaleFactor, dy * scaleFactor);
         }
       }
       e.preventDefault();
@@ -1066,13 +1057,13 @@ export class Editor {
    * Set scale
    */
   setScale(scale: number) {
-    if (scale < 0.1) {
-      // min 10%
-      scale = 0.1;
+    if (scale < 0.15) {
+      // min 15%
+      scale = 0.15;
     }
-    if (scale > 10) {
-      // max 1000%
-      scale = 10;
+    if (scale > 3) {
+      // max 300%
+      scale = 3;
     }
     this.canvas.scale = scale;
     if (this.currentPage) {
