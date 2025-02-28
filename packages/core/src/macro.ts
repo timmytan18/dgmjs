@@ -1,17 +1,18 @@
+import { filterDescendants, type Obj } from "./core/obj";
+import { Transaction } from "./core/transaction";
+import * as geometry from "./graphics/geometry";
+import { Canvas } from "./graphics/graphics";
 import {
-  constraintManager,
   Box,
+  Connector,
+  constraintManager,
+  Doc,
+  Group,
+  Page,
   Path,
   Shape,
-  Group,
-  Connector,
-  Page,
-  Doc,
 } from "./shapes";
-import { Canvas } from "./graphics/graphics";
-import * as geometry from "./graphics/geometry";
-import { moveEndPoint, adjustRoute } from "./utils/route-utils";
-import { filterDescendants, type Obj } from "./core/obj";
+import { adjustRoute, moveEndPoint } from "./utils/route-utils";
 import {
   getAllBoundingRect,
   getAllConnectorsTo,
@@ -20,7 +21,6 @@ import {
   getAllReferers,
 } from "./utils/shape-utils";
 import { visitTextNodes } from "./utils/text-utils";
-import { Transaction } from "./core/transaction";
 
 /**
  * Macro functions (a set of mutations)
@@ -316,7 +316,7 @@ export function setHorzAlign(
   horzAlign: string
 ): boolean {
   let changed = false;
-  let doc = structuredClone(box.text);
+  const doc = structuredClone(box.text);
   visitTextNodes(doc, (docNode) => {
     if (docNode.attrs && docNode.attrs.textAlign)
       docNode.attrs.textAlign = horzAlign;
@@ -335,7 +335,7 @@ export function setFontSize(
   fontSize: number
 ): boolean {
   let changed = false;
-  let doc = structuredClone(box.text);
+  const doc = structuredClone(box.text);
   visitTextNodes(doc, (docNode) => {
     if (Array.isArray(docNode.marks)) {
       docNode.marks.forEach((mark: any) => {
@@ -359,7 +359,7 @@ export function setFontFamily(
   fontFamily: string
 ): boolean {
   let changed = false;
-  let doc = structuredClone(box.text);
+  const doc = structuredClone(box.text);
   visitTextNodes(doc, (docNode) => {
     if (Array.isArray(docNode.marks)) {
       docNode.marks.forEach((mark: any) => {
@@ -383,7 +383,7 @@ export function setFontColor(
   fontColor: string
 ): boolean {
   let changed = false;
-  let doc = structuredClone(box.text);
+  const doc = structuredClone(box.text);
   visitTextNodes(doc, (docNode) => {
     if (Array.isArray(docNode.marks)) {
       docNode.marks.forEach((mark: any) => {
@@ -463,16 +463,16 @@ export function moveShapes(
   let changed = false;
 
   // filter all descendants of one of moving shapes
-  let filtered = filterDescendants(shapes) as Shape[];
+  const filtered = filterDescendants(shapes) as Shape[];
 
   // move all children and descendants
-  let targets = getAllDescendant(filtered) as Shape[];
+  const targets = getAllDescendant(filtered) as Shape[];
   targets.forEach((s) => {
     changed = moveSingleShape(tx, s as Shape, dx, dy) || changed;
   });
 
   // move ends of edges which is not in targets
-  let edges = getAllConnectorsTo(page, targets).filter(
+  const edges = getAllConnectorsTo(page, targets).filter(
     (s) => !targets.includes(s)
   );
   edges.forEach((s) => {
@@ -517,23 +517,28 @@ export function deleteSingleShape(
   shape: Shape
 ): boolean {
   let changed = false;
-  // set null to all edges connected to the shape
+  // Find all edges connected to the shape
   const edges = getAllConnectorsTo(page, [shape]) as Connector[];
-  for (let edge of edges) {
-    if (edge.head === shape)
-      changed = tx.assignRef(edge, "head", null) || changed;
-    if (edge.tail === shape)
-      changed = tx.assignRef(edge, "tail", null) || changed;
+
+  // Delete all connector edges where this shape is head or tail
+  for (const edge of edges) {
+    // Remove the edge from its parent
+    if (edge.parent) {
+      changed = tx.removeChild(edge.parent, edge) || changed;
+    }
+    // Delete the edge from store
+    changed = tx.deleteObj(edge) || changed;
   }
+
   // set null to all references to the shape
   const referers = getAllReferers(doc, [shape]);
-  for (let referer of referers) {
+  for (const referer of referers) {
     if (referer.reference === shape)
       changed = tx.assignRef(referer, "reference", null) || changed;
   }
   // set null to all mirrors of the shape
   const mirrors = getAllMirrors(doc, [shape]);
-  for (let mirror of mirrors) {
+  for (const mirror of mirrors) {
     if (mirror.subject === shape)
       changed = tx.assignRef(mirror, "subject", null) || changed;
   }
@@ -573,7 +578,7 @@ export function groupShapes(
 ): boolean {
   let changed = false;
   const box = getAllBoundingRect(canvas, shapes);
-  let filtered = filterDescendants(shapes) as Shape[];
+  const filtered = filterDescendants(shapes) as Shape[];
   if (filtered.length > 1) {
     const group = new Group();
     group.left = box[0][0];
@@ -606,7 +611,7 @@ export function ungroupShapes(
 ) {
   let changed = false;
   if (shapes.some((s) => s instanceof Group)) {
-    for (let s of shapes!) {
+    for (const s of shapes!) {
       if (s instanceof Group) {
         const children = [...s.children].reverse();
         for (let i = children.length - 1; i >= 0; i--) {
@@ -647,7 +652,7 @@ export function sendToBack(tx: Transaction, shape: Shape): boolean {
  * A macro to bring the shape forward
  */
 export function bringForward(tx: Transaction, shape: Shape): boolean {
-  let changed = false;
+  const changed = false;
   if (shape.parent) {
     const len = shape.parent.children.length;
     const pos = shape.parent.children.indexOf(shape);
@@ -662,7 +667,7 @@ export function bringForward(tx: Transaction, shape: Shape): boolean {
  * A macro to send the shape backward
  */
 export function sendBackward(tx: Transaction, shape: Shape): boolean {
-  let changed = false;
+  const changed = false;
   if (shape.parent) {
     const pos = shape.parent.children.indexOf(shape);
     if (pos > 0) {
