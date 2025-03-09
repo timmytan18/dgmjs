@@ -1,16 +1,8 @@
-import type { Editor } from "./editor";
-import {
-  Box,
-  Group,
-  Shape,
-  type ShapeProps,
-  Page,
-  Path,
-  Mirror,
-} from "./shapes";
-import * as geometry from "./graphics/geometry";
+import { ActionKind, Store } from "./core";
 import { Obj } from "./core/obj";
 import { deserialize, serialize } from "./core/serialize";
+import type { Editor } from "./editor";
+import * as geometry from "./graphics/geometry";
 import {
   addPage,
   addShape,
@@ -28,8 +20,16 @@ import {
   sendToBack,
   ungroupShapes,
 } from "./macro";
+import {
+  Box,
+  Group,
+  Mirror,
+  Page,
+  Path,
+  Shape,
+  type ShapeProps,
+} from "./shapes";
 import { visitTextNodes } from "./utils/text-utils";
-import { ActionKind, Store } from "./core";
 
 /**
  * Extract outer refs in objs from the store
@@ -39,7 +39,7 @@ export const outerRefMapExtractor = (
   objs: Obj[]
 ): Record<string, Obj> => {
   const outerRefMap: Record<string, Obj> = {};
-  for (let obj of objs) {
+  for (const obj of objs) {
     obj.traverse((o) => {
       if (
         o instanceof Shape &&
@@ -179,7 +179,7 @@ export class Actions {
       this.editor.transform.startAction(ActionKind.UPDATE);
       this.editor.transform.transact((tx) => {
         objs = objs ?? this.editor.selection.getShapes();
-        for (let key in values) {
+        for (const key in values) {
           const value = (values as any)[key];
           switch (key) {
             case "reference": {
@@ -347,6 +347,25 @@ export class Actions {
           [center, center],
           data.text
         );
+
+        // Set a default width for the text and enable word wrapping
+        const defaultWidth = 500; // Default width for pasted text
+        shape.width = defaultWidth;
+        shape.wordWrap = true;
+
+        // Allow the shape to be freely resizable
+        shape.sizable = "free";
+
+        // Only constrain the height to adjust based on content
+        // This allows the width to be freely changed by the user
+        shape.constraints = [
+          {
+            id: "set-size",
+            width: "text-min", // Allow width to be manually resized but not smaller than text
+            height: "text", // Height adjusts based on content
+          },
+        ];
+
         this.editor.transform.startAction(ActionKind.PASTE);
         this.editor.transform.transact((tx) => {
           addShape(tx, shape, currentPage);
@@ -411,7 +430,7 @@ export class Actions {
         this.editor.transform.startAction(ActionKind.MOVE);
         this.editor.transform.transact((tx) => {
           if (shapes!.every((s) => s instanceof Box && s.anchored)) {
-            for (let s of shapes!) {
+            for (const s of shapes!) {
               if (s instanceof Box && s.anchored) {
                 const anchorPoint = geometry.getPointOnPath(
                   (s.parent as Shape).getOutline() ?? [],
@@ -490,7 +509,7 @@ export class Actions {
       if (shapes.length > 0) {
         this.editor.transform.startAction(ActionKind.BRING_TO_FRONT);
         this.editor.transform.transact((tx) => {
-          for (let s of shapes!) {
+          for (const s of shapes!) {
             bringToFront(tx, s);
           }
           resolveAllConstraints(tx, page, this.editor.canvas);
@@ -510,7 +529,7 @@ export class Actions {
       if (shapes.length > 0) {
         this.editor.transform.startAction(ActionKind.SEND_TO_BACK);
         this.editor.transform.transact((tx) => {
-          for (let s of shapes!) {
+          for (const s of shapes!) {
             sendToBack(tx, s);
           }
           resolveAllConstraints(tx, page, this.editor.canvas);
@@ -530,7 +549,7 @@ export class Actions {
       if (shapes.length > 0) {
         this.editor.transform.startAction(ActionKind.BRING_FORWARD);
         this.editor.transform.transact((tx) => {
-          for (let s of shapes!) {
+          for (const s of shapes!) {
             bringForward(tx, s);
           }
           resolveAllConstraints(tx, page, this.editor.canvas);
@@ -550,7 +569,7 @@ export class Actions {
       if (shapes.length > 0) {
         this.editor.transform.startAction(ActionKind.SEND_BACKWARD);
         this.editor.transform.transact((tx) => {
-          for (let s of shapes!) {
+          for (const s of shapes!) {
             sendBackward(tx, s);
           }
           resolveAllConstraints(tx, page, this.editor.canvas);

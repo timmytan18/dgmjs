@@ -1,4 +1,8 @@
 import type { Editor } from "./editor";
+import { SHAPE_MIN_SIZE } from "./graphics/const";
+import * as geometry from "./graphics/geometry";
+import { FillStyle } from "./graphics/graphics";
+import { VGElement } from "./graphics/vector-graphic";
 import {
   Connector,
   Ellipse,
@@ -7,24 +11,20 @@ import {
   Freehand,
   Highlighter,
   HorzAlign,
+  Icon,
   Image,
   Line,
   LineType,
+  Mirror,
   Rectangle,
   Shape,
   Sizable,
   Text,
-  Icon,
   VertAlign,
-  Mirror,
 } from "./shapes";
-import { resizeImage } from "./utils/image-utils";
-import * as geometry from "./graphics/geometry";
-import { SHAPE_MIN_SIZE } from "./graphics/const";
 import { TypedEvent } from "./std/typed-event";
+import { resizeImage } from "./utils/image-utils";
 import { convertStringToTextNode } from "./utils/text-utils";
-import { FillStyle } from "./graphics/graphics";
-import { VGElement } from "./graphics/vector-graphic";
 
 /**
  * Shape factory
@@ -68,8 +68,8 @@ export class ShapeFactory {
     const rectangle = new Rectangle();
     rectangle.left = rect[0][0];
     rectangle.top = rect[0][1];
-    let w = geometry.width(rect);
-    let h = geometry.height(rect);
+    const w = geometry.width(rect);
+    const h = geometry.height(rect);
     rectangle.width = w;
     rectangle.height = h;
     rectangle.horzAlign = HorzAlign.CENTER;
@@ -85,8 +85,8 @@ export class ShapeFactory {
     const ellipse = new Ellipse();
     ellipse.left = rect[0][0];
     ellipse.top = rect[0][1];
-    let w = geometry.width(rect);
-    let h = geometry.height(rect);
+    const w = geometry.width(rect);
+    const h = geometry.height(rect);
     ellipse.width = w;
     ellipse.height = h;
     ellipse.horzAlign = HorzAlign.CENTER;
@@ -106,17 +106,43 @@ export class ShapeFactory {
     text.fillStyle = FillStyle.NONE;
     text.left = rect[0][0];
     text.top = rect[0][1];
+
     let w = geometry.width(rect);
-    let h = geometry.height(rect);
-    text.width = w;
-    text.height = h;
+    const h = geometry.height(rect);
+
+    // If the text is long and the width is minimal, set a reasonable default width
+    // This prevents text from extending too far horizontally
+    const isLongText = initialText.length > 50;
+    const isMinimalWidth = w < 10; // When rect is just a point (e.g., [center, center])
+
+    if (isLongText && isMinimalWidth) {
+      const defaultWidth = 500; // Default width for long text
+      w = defaultWidth;
+      text.wordWrap = true;
+      text.sizable = "free"; // Allow user to resize in any direction
+
+      // Only constrain the height to adjust based on content
+      // This allows the width to be freely changed by the user
+      text.constraints = [
+        {
+          id: "set-size",
+          width: "text-min", // Allow width to be manually resized but not smaller than text
+          height: "text", // Height adjusts based on content
+        },
+      ];
+    } else {
+      text.width = w;
+      text.height = h;
+      text.constraints.push({
+        id: "set-size",
+        width: "text",
+        height: "text",
+      });
+    }
+
     text.horzAlign = HorzAlign.LEFT;
     text.vertAlign = VertAlign.TOP;
-    text.constraints.push({
-      id: "set-size",
-      width: "text",
-      height: "text",
-    });
+
     this.onShapeInitialize.emit(text);
     return text;
   }
