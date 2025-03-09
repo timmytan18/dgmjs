@@ -156,12 +156,13 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
 
   const open = (textShape: Box) => {
     if (editor.getCurrentPage() && textShape) {
-      // Ensure text shape has proper dimensions regardless of how it was created
-      const MIN_WIDTH = 350;
-      const MIN_HEIGHT = 150;
+      // Store original dimensions to restore later
+      const originalWidth = textShape.width;
+      const originalHeight = textShape.height;
 
-      if (textShape.width < MIN_WIDTH) textShape.width = MIN_WIDTH;
-      if (textShape.height < MIN_HEIGHT) textShape.height = MIN_HEIGHT;
+      // Save original dimensions as properties to restore during updates and when closing
+      (textShape as any)._originalWidth = originalWidth;
+      (textShape as any)._originalHeight = originalHeight;
 
       // disable shape's text rendering
       textShape.allowRenderText = false;
@@ -204,6 +205,13 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
       // mutate text shape
       editor.transform.transact((tx: Transaction) => {
         tx.assign(textShape, "text", textValue);
+
+        // Restore original dimensions during update to prevent expansion
+        if ((textShape as any)._originalWidth !== undefined) {
+          tx.assign(textShape, "width", (textShape as any)._originalWidth);
+          tx.assign(textShape, "height", (textShape as any)._originalHeight);
+        }
+
         macro.resolveAllConstraints(
           tx,
           editor.getCurrentPage()!,
@@ -211,8 +219,9 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
         );
       });
 
-      // update states
+      // Get text rect but respect original dimensions
       const rect = getTextRect(textShape as Text, textValue);
+
       setState({
         textShape: textShape as Text,
         padding: textShape.padding,
@@ -227,8 +236,8 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
         scale: editor.getScale(),
         left: rect.left,
         top: rect.top,
-        width: Math.max(textShape.width, rect.width),
-        height: Math.max(textShape.height, rect.height),
+        width: (textShape as any)._originalWidth || rect.width,
+        height: (textShape as any)._originalHeight || rect.height,
         textWidth: rect.textWidth,
         textHeight: rect.textHeight,
       });
@@ -237,6 +246,14 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
 
   const close = () => {
     if (tiptapEditor && state.textShape) {
+      const textShape = state.textShape;
+
+      // Clean up the temporary properties
+      if ((textShape as any)._originalWidth !== undefined) {
+        delete (textShape as any)._originalWidth;
+        delete (textShape as any)._originalHeight;
+      }
+
       editor.transform.endAction();
       const textValue = tiptapEditor.getJSON();
       const textString = textUtils.convertTextNodeToString(textValue);

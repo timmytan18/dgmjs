@@ -1,27 +1,27 @@
-import { assert } from "./std/assert";
-import { FillStyle, Canvas } from "./graphics/graphics";
+import { ZodSchema } from "zod";
+import { themeColors } from "./colors";
+import { Instantiator } from "./core/instantiator";
+import { Obj } from "./core/obj";
+import { Transaction } from "./core/transaction";
 import {
   CONTROL_POINT_APOTHEM,
   DEFAULT_FONT_SIZE,
   LINE_SELECTION_THRESHOLD,
 } from "./graphics/const";
 import * as geometry from "./graphics/geometry";
+import { Canvas, FillStyle } from "./graphics/graphics";
+import { MemoizationCanvas } from "./graphics/memoization-canvas";
 import * as utils from "./graphics/utils";
-import { ZodSchema } from "zod";
+import { renderVGElement, VGElement } from "./graphics/vector-graphic";
+import { evalScript } from "./mal/mal";
+import { assert } from "./std/assert";
+import { hashStringToNumber } from "./std/id";
+import { getAllViewport } from "./utils/shape-utils";
 import {
   convertStringToTextNode,
   renderTextShape,
   visitTextNodes,
 } from "./utils/text-utils";
-import { evalScript } from "./mal/mal";
-import { Obj } from "./core/obj";
-import { Instantiator } from "./core/instantiator";
-import { Transaction } from "./core/transaction";
-import { MemoizationCanvas } from "./graphics/memoization-canvas";
-import { hashStringToNumber } from "./std/id";
-import { themeColors } from "./colors";
-import { getAllViewport } from "./utils/shape-utils";
-import { renderVGElement, VGElement } from "./graphics/vector-graphic";
 
 export const ScriptType = {
   RENDER: "render",
@@ -657,7 +657,7 @@ export class Shape extends Obj {
   ): number[] {
     let p = [point[0], point[1]];
     if (this.rotate !== 0) {
-      let cp = this.getCenter();
+      const cp = this.getCenter();
       p = geometry.rotate(p, this.rotate, cp);
     }
     if (recursive && this.parent instanceof Shape) {
@@ -680,7 +680,7 @@ export class Shape extends Obj {
       p = this.parent.localCoordTransformRev(canvas, p, recursive);
     }
     if (this.rotate !== 0) {
-      let cp = this.getCenter();
+      const cp = this.getCenter();
       p = geometry.rotate(p, -this.rotate, cp);
     }
     return p;
@@ -897,8 +897,8 @@ export class Shape extends Obj {
       return utils.gcs2dcs(canvas, p);
     });
     const scale = canvas.scale;
-    let width = geometry.width(rect) * (1 / scale);
-    let height = geometry.height(rect) * (1 / scale);
+    const width = geometry.width(rect) * (1 / scale);
+    const height = geometry.height(rect) * (1 / scale);
     const left = rect[0][0] - (width * (1 - scale)) / 2;
     const top = rect[0][1] - (height * (1 - scale)) / 2;
     return [
@@ -1017,7 +1017,7 @@ export class Shape extends Obj {
    */
   match(query: Array<{ _type: string; tag: string }>): boolean {
     if (query.length === 0) return true;
-    for (let clause of query) {
+    for (const clause of query) {
       const terms = Object.entries(clause);
       const result = terms.every(([key, value]) => {
         switch (key) {
@@ -1705,8 +1705,8 @@ export class Box extends Shape {
         case "text":
           let fontStyle = this.fontStyle;
           let fontWeight = this.fontWeight;
-          let fontSize = this.fontSize;
-          let fontFamily = this.fontFamily;
+          const fontSize = this.fontSize;
+          const fontFamily = this.fontFamily;
           if (node.marks) {
             node.marks.forEach((mark: any) => {
               switch (mark.type) {
@@ -1858,8 +1858,8 @@ export class Path extends Shape {
    * @returns segment line to end
    */
   getEndSegment(isHead: boolean): number[][] {
-    let i1 = isHead ? this.path.length - 2 : 1;
-    let i2 = isHead ? this.path.length - 1 : 0;
+    const i1 = isHead ? this.path.length - 2 : 1;
+    const i2 = isHead ? this.path.length - 1 : 0;
     return [this.path[i1], this.path[i2]];
   }
 
@@ -2296,7 +2296,7 @@ export class Line extends Path {
    * Draw this shape
    */
   renderDefault(canvas: MemoizationCanvas): void {
-    let path = geometry.pathCopy(this.path);
+    const path = geometry.pathCopy(this.path);
     if (path.length >= 2) {
       const hp = this.renderLineEnd(canvas, this.headEndType, true);
       const tp = this.renderLineEnd(canvas, this.tailEndType, false);
@@ -2367,10 +2367,10 @@ export class Line extends Path {
     const gap = 4;
     const xsize = 11;
     const ysize = 7;
-    let grid: number[][][] = []; // [x][y]
+    const grid: number[][][] = []; // [x][y]
     const yshalf = Math.floor(ysize / 2);
     for (let ix = 0; ix < xsize; ix++) {
-      let column: number[][] = [];
+      const column: number[][] = [];
       for (let iy = -yshalf; iy <= yshalf; iy++) {
         const l = Math.sqrt(Math.pow(gap * ix, 2) + Math.pow(gap * iy, 2));
         const c = Math.acos((gap * ix) / l);
@@ -3381,9 +3381,9 @@ export function drawShapesOnCanvas(
     [maxCanvasSize[0], maxCanvasSize[1]],
     maxScale
   );
-  let w = size[0];
-  let h = size[1];
-  let scale = size[2] * scaleAdjust;
+  const w = size[0];
+  const h = size[1];
+  const scale = size[2] * scaleAdjust;
 
   // set canvas size
   const cw = w;
