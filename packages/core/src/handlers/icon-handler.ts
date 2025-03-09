@@ -1,11 +1,11 @@
-import * as geometry from "../graphics/geometry";
-import { Editor, Handler } from "../editor";
-import { CanvasPointerEvent } from "../graphics/graphics";
-import { Cursor, Mouse } from "../graphics/const";
-import { Rectangle, Shape } from "../shapes";
-import { addShape, resolveAllConstraints } from "../macro";
 import { ActionKind } from "../core";
+import { Editor, Handler } from "../editor";
+import { Cursor } from "../graphics/const";
+import * as geometry from "../graphics/geometry";
+import { CanvasPointerEvent } from "../graphics/graphics";
+import { addShape, resolveAllConstraints } from "../macro";
 import { HandlerSnapper } from "../manipulators/snapper";
+import { Rectangle, Shape } from "../shapes";
 
 /**
  * Icon Factory Handler

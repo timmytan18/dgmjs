@@ -1,22 +1,22 @@
 import {
-  Transaction,
-  Editor,
-  Shape,
+  ActionKind,
   Box,
+  DblClickEvent,
+  Editor,
+  macro,
+  Shape,
   Text,
   textUtils,
-  DblClickEvent,
-  macro,
-  ActionKind,
+  Transaction,
 } from "@dgmjs/core";
+import { Editor as TiptapEditor } from "@tiptap/react";
 import { useEffect, useRef, useState } from "react";
-import { moveToAboveOrBelow, textVertAlignToAlignItems } from "./utils";
 import {
-  useEditor,
   extensions,
   TiptapEditorComponent,
+  useEditor,
 } from "./tiptap/tiptap-editor";
-import { Editor as TiptapEditor } from "@tiptap/react";
+import { moveToAboveOrBelow, textVertAlignToAlignItems } from "./utils";
 
 interface DGMTextInplaceEditorProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -95,6 +95,7 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
     return function cleanup() {
       if (editor) {
         editor.onDblClick.removeListener(handleEditorDblClick);
+        editor.onKeyDown.removeListener(handleEditorKeyDown);
         editor.factory.onCreate.removeListener(handleEditorFactoryCreate);
       }
     };
@@ -155,6 +156,13 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
 
   const open = (textShape: Box) => {
     if (editor.getCurrentPage() && textShape) {
+      // Ensure text shape has proper dimensions regardless of how it was created
+      const MIN_WIDTH = 350;
+      const MIN_HEIGHT = 150;
+
+      if (textShape.width < MIN_WIDTH) textShape.width = MIN_WIDTH;
+      if (textShape.height < MIN_HEIGHT) textShape.height = MIN_HEIGHT;
+
       // disable shape's text rendering
       textShape.allowRenderText = false;
       textShape.update(editor.canvas);
@@ -163,14 +171,28 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
       // start transaction
       editor.transform.startAction(ActionKind.EDIT_TEXT);
 
-      // set initial content
+      // set initial content and ensure focus
       tiptapEditor?.commands.setContent(textShape.text);
-      tiptapEditor?.commands.focus();
-      tiptapEditor?.commands.selectAll();
+
+      // Force focus with a tiny delay to ensure DOM is ready
+      setTimeout(() => {
+        tiptapEditor?.commands.focus("end");
+
+        // Select all if there is text or just place cursor at end
+        if (
+          textShape.text &&
+          typeof textShape.text === "object" &&
+          textShape.text.content &&
+          textShape.text.content.length > 0
+        ) {
+          tiptapEditor?.commands.selectAll();
+        }
+      }, 10);
 
       // update states
       update(textShape, textShape.text);
 
+      // Additional callback for external handling
       setTimeout(() => {
         if (onOpen) onOpen(textShape as Box);
       }, 0);
@@ -190,9 +212,9 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
       });
 
       // update states
-      const rect = getTextRect(textShape, textValue);
+      const rect = getTextRect(textShape as Text, textValue);
       setState({
-        textShape,
+        textShape: textShape as Text,
         padding: textShape.padding,
         alignItems: textVertAlignToAlignItems(textShape.vertAlign),
         textAlign: textShape.horzAlign,
@@ -216,14 +238,25 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
   const close = () => {
     if (tiptapEditor && state.textShape) {
       editor.transform.endAction();
-      const textString = textUtils.convertTextNodeToString(
-        tiptapEditor.getJSON()
-      );
+      const textValue = tiptapEditor.getJSON();
+      const textString = textUtils.convertTextNodeToString(textValue);
+
       if (state.textShape instanceof Text && textString.trim().length === 0) {
         editor.actions.remove([state.textShape]);
+      } else if (state.textShape) {
+        // Ensure the text is properly saved to the shape
+        editor.transform.transact((tx: Transaction) => {
+          if (state.textShape) {
+            tx.assign(state.textShape, "text", textValue);
+          }
+        });
       }
-      state.textShape.allowRenderText = true;
-      state.textShape.update(editor.canvas);
+
+      if (state.textShape) {
+        state.textShape.allowRenderText = true;
+        state.textShape.update(editor.canvas);
+      }
+
       editor.repaint();
       setState((state) => ({ ...state, textShape: null }));
     }
@@ -252,8 +285,32 @@ export const DGMTextInplaceEditor: React.FC<DGMTextInplaceEditorProps> = ({
 
   const handleEditorFactoryCreate = (shape: Shape) => {
     if (shape instanceof Text && shape.textEditable) {
+      // Ensure the shape is selected
       editor.selection.deselectAll();
-      open(shape);
+      editor.selection.select([shape]);
+
+      // Use setTimeout to ensure the shape is fully initialized before opening the editor
+      setTimeout(() => {
+        // Verify the shape still exists and has proper dimensions
+        if (shape && editor.getCurrentPage()?.children.includes(shape)) {
+          // Ensure minimum dimensions
+          if (shape.width < 100) shape.width = 350;
+          if (shape.height < 50) shape.height = 150;
+
+          // Force a repaint
+          editor.repaint();
+
+          // Open the editor
+          open(shape);
+
+          // Add an additional focus call with a delay to ensure focus happens after rendering
+          setTimeout(() => {
+            if (tiptapEditor) {
+              tiptapEditor.commands.focus("end");
+            }
+          }, 50);
+        }
+      }, 10);
     }
   };
 

@@ -1,11 +1,11 @@
-import * as geometry from "../graphics/geometry";
-import { Editor, Handler } from "../editor";
-import { CanvasPointerEvent } from "../graphics/graphics";
-import { Cursor } from "../graphics/const";
-import { Rectangle, Shape } from "../shapes";
-import { addShape, resolveAllConstraints } from "../macro";
 import { ActionKind } from "../core";
+import { Editor, Handler } from "../editor";
+import { Cursor } from "../graphics/const";
+import * as geometry from "../graphics/geometry";
+import { CanvasPointerEvent } from "../graphics/graphics";
+import { addShape, resolveAllConstraints } from "../macro";
 import { HandlerSnapper } from "../manipulators/snapper";
+import { Rectangle, Shape } from "../shapes";
 
 /**
  * Rectangle Factory Handler
@@ -55,6 +55,22 @@ export class RectangleFactoryHandler extends Handler {
         [this.dragPoint[0], this.dragStartPoint[1]],
         [this.dragStartPoint[0], this.dragPoint[1]],
         this.dragPoint,
+      ];
+    }
+
+    // Maintain aspect ratio if shift key is pressed
+    if (e.shiftDown) {
+      const dx = Math.abs(this.dragPoint[0] - this.dragStartPoint[0]);
+      const dy = Math.abs(this.dragPoint[1] - this.dragStartPoint[1]);
+      const size = Math.max(dx, dy);
+
+      // Determine the direction to maintain the square
+      const xDir = this.dragPoint[0] >= this.dragStartPoint[0] ? 1 : -1;
+      const yDir = this.dragPoint[1] >= this.dragStartPoint[1] ? 1 : -1;
+
+      this.dragPoint = [
+        this.dragStartPoint[0] + size * xDir,
+        this.dragStartPoint[1] + size * yDir,
       ];
     }
 

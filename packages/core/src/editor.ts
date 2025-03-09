@@ -676,11 +676,42 @@ export class Editor {
           ) as Shape | null;
           // create a text on canvas
           if (this.options.allowCreateTextOnCanvas && !shape) {
-            const textShape = this.factory.createText([
+            // Define fixed size for text shape (matching TextFactoryHandler)
+            const DEFAULT_WIDTH = 350;
+            const DEFAULT_HEIGHT = 150;
+
+            // Create rectangle with proper dimensions
+            const rect = [
               [x, y],
-              [x, y],
-            ]);
+              [x + DEFAULT_WIDTH, y + DEFAULT_HEIGHT],
+            ];
+
+            // Create text shape with the properly sized rectangle
+            const textShape = this.factory.createText(rect, "");
+
+            // Ensure the text is properly configured
+            if (textShape) {
+              // Force explicit dimensions
+              textShape.width = DEFAULT_WIDTH;
+              textShape.height = DEFAULT_HEIGHT;
+
+              // Make sure it's user-resizable
+              textShape.sizable = "free";
+
+              // Remove any constraints that might affect dimensions
+              textShape.constraints = [];
+
+              // Ensure the text is editable
+              textShape.textEditable = true;
+            }
+
+            // Insert the shape
             this.actions.insert(textShape);
+
+            // Force a repaint for better visibility
+            this.repaint();
+
+            // Trigger the editor
             this.factory.triggerCreate(textShape);
           }
           // create a text on connector

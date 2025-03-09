@@ -1,11 +1,11 @@
-import * as geometry from "../graphics/geometry";
-import { Editor, Handler } from "../editor";
-import { CanvasPointerEvent } from "../graphics/graphics";
-import { Cursor, Mouse } from "../graphics/const";
-import { Frame, Shape } from "../shapes";
-import { addShape, resolveAllConstraints } from "../macro";
 import { ActionKind } from "../core";
+import { Editor, Handler } from "../editor";
+import { Cursor } from "../graphics/const";
+import * as geometry from "../graphics/geometry";
+import { CanvasPointerEvent } from "../graphics/graphics";
+import { addShape, resolveAllConstraints } from "../macro";
 import { HandlerSnapper } from "../manipulators/snapper";
+import { Frame, Shape } from "../shapes";
 
 /**
  * Frame Factory Handler
@@ -58,6 +58,22 @@ export class FrameFactoryHandler extends Handler {
       ];
     }
 
+    // Maintain aspect ratio if shift key is pressed
+    if (e.shiftDown) {
+      const dx = Math.abs(this.dragPoint[0] - this.dragStartPoint[0]);
+      const dy = Math.abs(this.dragPoint[1] - this.dragStartPoint[1]);
+      const size = Math.max(dx, dy);
+
+      // Determine the direction to maintain the square
+      const xDir = this.dragPoint[0] >= this.dragStartPoint[0] ? 1 : -1;
+      const yDir = this.dragPoint[1] >= this.dragStartPoint[1] ? 1 : -1;
+
+      this.dragPoint = [
+        this.dragStartPoint[0] + size * xDir,
+        this.dragStartPoint[1] + size * yDir,
+      ];
+    }
+
     // update shape
     const page = editor.getCurrentPage();
     if (page && this.shape) {
@@ -83,15 +99,13 @@ export class FrameFactoryHandler extends Handler {
 
   finalize(editor: Editor, e: CanvasPointerEvent): void {
     const MIN_SIZE = 2;
-    if (
-      this.shape &&
-      this.shape?.width < MIN_SIZE &&
-      this.shape?.height < MIN_SIZE
-    ) {
-      editor.transform.cancelAction();
-    } else {
-      editor.transform.endAction();
-      editor.factory.triggerCreate(this.shape as Shape);
+    if (this.shape) {
+      if (this.shape?.width < MIN_SIZE && this.shape?.height < MIN_SIZE) {
+        editor.transform.cancelAction();
+      } else {
+        editor.transform.endAction();
+        editor.factory.triggerCreate(this.shape as Shape);
+      }
     }
   }
 
