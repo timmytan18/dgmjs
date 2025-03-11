@@ -1,18 +1,18 @@
 import { type EditorOptions } from "./editor";
 import {
-  SelectHandler,
-  HandHandler,
-  RectangleFactoryHandler,
-  EllipseFactoryHandler,
-  TextFactoryHandler,
   ConnectorFactoryHandler,
-  LineFactoryHandler,
-  FreehandFactoryHandler,
-  HighlighterFactoryHandler,
-  ImageFactoryHandler,
+  EllipseFactoryHandler,
   EmbedFactoryHandler,
   EraserHandler,
+  FreehandFactoryHandler,
+  HandHandler,
+  HighlighterFactoryHandler,
+  ImageFactoryHandler,
+  LineFactoryHandler,
   MirrorFactoryHandler,
+  RectangleFactoryHandler,
+  SelectHandler,
+  TextFactoryHandler,
 } from "./handlers";
 import { FrameFactoryHandler } from "./handlers/frame-handler";
 import { IconFactoryHandler } from "./handlers/icon-handler";
@@ -77,7 +77,7 @@ export function basicSetup(
       "mod-right": (editor) => editor.scroll(editor.getGridSize()[0], 0),
     },
     keymapEventTarget: null,
-    allowAutoScroll: true,
+    allowAutoScroll: false,
     allowCreateTextOnCanvas: true,
     allowCreateTextOnConnector: true,
     ...(options ?? {}),
